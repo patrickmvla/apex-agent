@@ -15,6 +15,7 @@
     "publish": true
   },
   "dependencies": {
+    "cheerio": "^1.1.0",
     "hono": "4.8.2",
     "react": "19.0.0",
     "react-dom": "19.0.0"
@@ -42,7 +43,8 @@
     "deploy": "wrangler deploy",
     "dev": "vite",
     "lint": "eslint .",
-    "preview": "npm run build && vite preview"
+    "preview": "npm run build && vite preview",
+   "scrape": "bun src/worker/scraper.ts"
   },
   "type": "module"
 }
