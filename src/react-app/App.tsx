@@ -1,64 +1,77 @@
-// src/App.tsx
-
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import cloudflareLogo from "./assets/Cloudflare_Logo.svg";
-import honoLogo from "./assets/hono.svg";
+import { useState, useEffect } from "react";
 import "./App.css";
 
+// Define a type for the map rotation data for better type safety
+interface MapRotationData {
+  battle_royale: {
+    current: { map: string; remainingTimer: string };
+    next: { map: string };
+  };
+  ranked: {
+    current: { map:string; remainingTimer: string };
+    next: { map: string };
+  };
+  ltm: {
+    current: { map: string; remainingTimer: string };
+    next: { map: string };
+  };
+}
+
 function App() {
-  const [count, setCount] = useState(0);
-  const [name, setName] = useState("unknown");
+  const [rotationData, setRotationData] = useState<MapRotationData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch the map rotation data when the component mounts
+    const fetchMapRotation = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetch("/api/map-rotation");
+        if (!res.ok) {
+          throw new Error(`Failed to fetch data: ${res.statusText}`);
+        }
+        const data = await res.json();
+        setRotationData(data);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An unknown error occurred");
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMapRotation();
+  }, []); // The empty dependency array ensures this runs only once on mount
+
+  const renderMapCard = (title: string, mapInfo: MapRotationData[keyof MapRotationData]) => {
+    if (!mapInfo || !mapInfo.current) return null;
+    return (
+      <div className="map-card">
+        <h2>{title}</h2>
+        <p><strong>Current:</strong> {mapInfo.current.map}</p>
+        <p><strong>Time Remaining:</strong> {mapInfo.current.remainingTimer}</p>
+        <p><strong>Next:</strong> {mapInfo.next.map}</p>
+      </div>
+    );
+  };
+
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-        <a href="https://hono.dev/" target="_blank">
-          <img src={honoLogo} className="logo cloudflare" alt="Hono logo" />
-        </a>
-        <a href="https://workers.cloudflare.com/" target="_blank">
-          <img
-            src={cloudflareLogo}
-            className="logo cloudflare"
-            alt="Cloudflare logo"
-          />
-        </a>
+      <h1>Apex Legends Dashboard</h1>
+      <div className="dashboard-container">
+        {isLoading && <p>Loading live game data...</p>}
+        {error && <p className="error-message">Error: {error}</p>}
+        {rotationData && (
+          <div className="rotation-grid">
+            {renderMapCard("Battle Royale", rotationData.battle_royale)}
+            {renderMapCard("Ranked", rotationData.ranked)}
+            {renderMapCard("Limited Time Mode", rotationData.ltm)}
+          </div>
+        )}
       </div>
-      <h1>Vite + React + Hono + Cloudflare</h1>
-      <div className="card">
-        <button
-          onClick={() => setCount((count) => count + 1)}
-          aria-label="increment"
-        >
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <div className="card">
-        <button
-          onClick={() => {
-            fetch("/api/")
-              .then((res) => res.json() as Promise<{ name: string }>)
-              .then((data) => setName(data.name));
-          }}
-          aria-label="get name"
-        >
-          Name from API is: {name}
-        </button>
-        <p>
-          Edit <code>worker/index.ts</code> to change the name
-        </p>
-      </div>
-      <p className="read-the-docs">Click on the logos to learn more</p>
     </>
   );
 }
