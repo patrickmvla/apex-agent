@@ -15,8 +15,16 @@
     "publish": true
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.1.1",
     "@pinecone-database/pinecone": "^6.1.1",
+    "@radix-ui/react-avatar": "^1.1.10",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-scroll-area": "^1.2.9",
+    "@radix-ui/react-select": "^2.2.5",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-tabs": "^1.1.12",
     "@tailwindcss/vite": "^4.1.11",
+    "@tanstack/react-query": "^5.83.0",
     "cheerio": "^1.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -24,8 +32,12 @@
     "lucide-react": "^0.525.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "react-hook-form": "^7.60.0",
+    "react-router-dom": "^7.6.3",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss": "^4.1.11"
+    "tailwindcss": "^4.1.11",
+    "zod": "^4.0.5",
+    "zustand": "^5.0.6"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.7.5",
@@ -52,7 +64,7 @@
     "dev": "vite",
     "lint": "eslint .",
     "preview": "npm run build && vite preview",
-    "scrape": "bun src/worker/scraper.ts"
+    "scrape": "bun worker/scraper.ts"
   },
   "type": "module"
 }

@@ -3,11 +3,10 @@ import { Hono } from "hono";
 type Bindings = {
   GEMINI_API_KEY: string;
   PINECONE_API_KEY: string;
-  PINECONE_HOST: string; // The full URL of your Pinecone index
+  PINECONE_HOST: string;
   APEX_LEGENDS_API_KEY: string;
 };
 
-// --- API Response Type Definitions ---
 type GeminiChatResponse = {
   candidates: Array<{
     content: {
@@ -36,8 +35,6 @@ type PineconeQueryResponse = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-// --- Helper Functions ---
-
 async function createEmbedding(text: string, c: any): Promise<number[]> {
   const embeddingUrl = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${c.env.GEMINI_API_KEY}`;
 
@@ -62,9 +59,6 @@ async function createEmbedding(text: string, c: any): Promise<number[]> {
   }
 }
 
-// --- API Routes ---
-
-// 1. AI Chat Endpoint
 app.post("/api/chat", async (c) => {
   try {
     const { message } = await c.req.json<{ message: string }>();
@@ -104,7 +98,7 @@ app.post("/api/chat", async (c) => {
       Query: ${message}
     `;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${c.env.GEMINI_API_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${c.env.GEMINI_API_KEY}`;
     const llmResponse = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -130,7 +124,6 @@ app.post("/api/chat", async (c) => {
   }
 });
 
-// 2. Map Rotation Endpoint
 app.get("/api/map-rotation", async (c) => {
   try {
     const apiUrl = `https://api.mozambiquehe.re/maprotation?auth=${c.env.APEX_LEGENDS_API_KEY}&version=2`;
@@ -152,7 +145,6 @@ app.get("/api/map-rotation", async (c) => {
   }
 });
 
-// 3. Player Statistics Endpoint
 app.get("/api/player-stats/:platform/:playerName", async (c) => {
   try {
     const platform = c.req.param("platform");
@@ -181,7 +173,6 @@ app.get("/api/player-stats/:platform/:playerName", async (c) => {
   }
 });
 
-// 4. Predator Leaderboard Endpoint
 app.get("/api/predator", async (c) => {
   try {
     const apiUrl = `https://api.mozambiquehe.re/predator?auth=${c.env.APEX_LEGENDS_API_KEY}`;
@@ -203,7 +194,6 @@ app.get("/api/predator", async (c) => {
   }
 });
 
-// 5. Store Rotation Endpoint
 app.get("/api/store", async (c) => {
   try {
     const apiUrl = `https://api.mozambiquehe.re/store?auth=${c.env.APEX_LEGENDS_API_KEY}`;
@@ -225,7 +215,6 @@ app.get("/api/store", async (c) => {
   }
 });
 
-// 6. Crafting Rotation Endpoint
 app.get("/api/crafting", async (c) => {
   try {
     const apiUrl = `https://api.mozambiquehe.re/crafting?auth=${c.env.APEX_LEGENDS_API_KEY}`;
@@ -239,15 +228,25 @@ app.get("/api/crafting", async (c) => {
       );
     }
 
-    const data: any = await response.json();
-    return c.json(data);
+    const text = await response.text();
+    if (!text) {
+      return c.json([]);
+    }
+
+    try {
+      const data = JSON.parse(text);
+      return c.json(data);
+    } catch (parseError) {
+      console.error("Error parsing crafting data as JSON:", parseError);
+
+      return c.json([]);
+    }
   } catch (error) {
     console.error("Error in /api/crafting:", error);
     return c.json({ error: "An internal error occurred" }, 500);
   }
 });
 
-// 7. Game News Endpoint
 app.get("/api/news", async (c) => {
   try {
     const apiUrl = `https://api.mozambiquehe.re/news?auth=${c.env.APEX_LEGENDS_API_KEY}`;
@@ -269,7 +268,6 @@ app.get("/api/news", async (c) => {
   }
 });
 
-// 8. Server Status Endpoint
 app.get("/api/server-status", async (c) => {
   try {
     const apiUrl = `https://api.mozambiquehe.re/serverstatus?auth=${c.env.APEX_LEGENDS_API_KEY}`;
@@ -291,7 +289,6 @@ app.get("/api/server-status", async (c) => {
   }
 });
 
-// Health Check Route
 app.get("/api/health", (c) => {
   return c.json({ status: "ok", timestamp: new Date().toISOString() });
 });
