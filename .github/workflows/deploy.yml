@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Pages
+name: Deploy to Cloudflare Workers
 
 on:
   push:
@@ -22,15 +22,9 @@ jobs:
       - name: Build Project
         run: bun run build
 
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
         with:
           # These secrets are the ones you configured in your GitHub repository settings
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # This must match the 'name' in your wrangler.toml file
-          projectName: "riot-drill"
-          # This is the directory that Vite builds your frontend to
-          directory: "./dist/client"
-          # This tells the action to use the project's version of wrangler
-          wranglerVersion: '3'

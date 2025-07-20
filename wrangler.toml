@@ -1,12 +1,12 @@
-# This configuration is optimized for a Cloudflare Pages deployment.
+# This configuration is for deploying a Worker that also serves a static site.
 
-name = "riot-drill"
-main = "worker/index.ts" # Path to our Hono backend function
+name = "Riot-Drill"
+main = "worker/index.ts" # Path to our Hono backend worker
 compatibility_date = "2024-07-15"
 
 # This flag is required because our dependencies use Node.js APIs.
 compatibility_flags = ["nodejs_compat_v2"]
 
-# NOTE: For a Pages project, we do not need a [site] or "assets" section.
-# The Pages platform automatically finds and deploys the frontend assets
-# built by Vite into the "./dist" directory.
+# This section tells Wrangler where to find our built frontend assets.
+[site]
+bucket = "./dist"
