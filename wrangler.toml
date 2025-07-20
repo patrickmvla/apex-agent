@@ -1,6 +1,6 @@
 # This is the definitive configuration for deploying to Cloudflare.
 
-name = "apex-agent"
+name = "Riot Drill"
 main = "worker/index.ts" # Points to our Hono backend entrypoint.
 compatibility_date = "2024-07-15"
 
