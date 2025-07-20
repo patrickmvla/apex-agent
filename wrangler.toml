@@ -5,10 +5,6 @@ name = "apex-agent"
 main = "worker/index.ts" # Points to our Hono backend entrypoint.
 compatibility_date = "2024-07-15"
 
-# Explicitly enabling the v2 Node.js compatibility mode as required by the error log.
+# Explicitly enabling the v2 Node.js compatibility mode, which is required
+# because our dependencies use Node.js APIs.
 compatibility_flags = ["nodejs_compat_v2"]
-
-# The `[site]` section is used by `wrangler deploy` to publish your frontend assets.
-# It is safely ignored by the local Vite development server.
-[site]
-bucket = "./dist"
