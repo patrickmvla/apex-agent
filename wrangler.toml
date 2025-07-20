@@ -1,6 +1,6 @@
 # This configuration is for deploying a Worker that also serves a static site.
 
-name = "Riot-Drill"
+name = "riot-drill"
 main = "worker/index.ts" # Path to our Hono backend worker
 compatibility_date = "2024-07-15"
 
