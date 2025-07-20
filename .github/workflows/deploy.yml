@@ -19,8 +19,14 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
+      # Step 1: Build the project first
+      - name: Build Project
+        run: bun run build
+
+      # Step 2: Deploy the built project
       - name: Deploy to Cloudflare
-        run: bun run deploy
+        # Use bunx to ensure the project's version of wrangler is used
+        run: bunx wrangler deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
