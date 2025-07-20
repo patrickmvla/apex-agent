@@ -1,5 +1,8 @@
 import { Hono } from "hono";
 
+// Note: The serveStatic import is no longer needed for Cloudflare Workers in this scenario.
+// Static assets are handled by the Cloudflare platform based on your wrangler.toml configuration.
+
 type Bindings = {
   GEMINI_API_KEY: string;
   PINECONE_API_KEY: string;
@@ -59,7 +62,11 @@ async function createEmbedding(text: string, c: any): Promise<number[]> {
   }
 }
 
-app.post("/api/chat", async (c) => {
+// --- API Routes ---
+// It's a good practice to group all API-related routes in a separate Hono instance.
+const api = new Hono<{ Bindings: Bindings }>();
+
+api.post("/chat", async (c) => {
   try {
     const { message } = await c.req.json<{ message: string }>();
     if (!message) {
@@ -124,7 +131,7 @@ app.post("/api/chat", async (c) => {
   }
 });
 
-app.get("/api/map-rotation", async (c) => {
+api.get("/map-rotation", async (c) => {
   try {
     const apiUrl = `https://api.mozambiquehe.re/maprotation?auth=${c.env.APEX_LEGENDS_API_KEY}&version=2`;
     const response = await fetch(apiUrl);
@@ -145,7 +152,7 @@ app.get("/api/map-rotation", async (c) => {
   }
 });
 
-app.get("/api/player-stats/:platform/:playerName", async (c) => {
+api.get("/player-stats/:platform/:playerName", async (c) => {
   try {
     const platform = c.req.param("platform");
     const playerName = c.req.param("playerName");
@@ -173,124 +180,14 @@ app.get("/api/player-stats/:platform/:playerName", async (c) => {
   }
 });
 
-app.get("/api/predator", async (c) => {
-  try {
-    const apiUrl = `https://api.mozambiquehe.re/predator?auth=${c.env.APEX_LEGENDS_API_KEY}`;
-    const response = await fetch(apiUrl);
+// --- Main App Setup ---
 
-    if (!response.ok) {
-      console.error("Apex Legends API Error:", await response.text());
-      return c.json(
-        { error: "Failed to fetch Predator leaderboard." },
-        response.status as any
-      );
-    }
-
-    const data: any = await response.json();
-    return c.json(data);
-  } catch (error) {
-    console.error("Error in /api/predator:", error);
-    return c.json({ error: "An internal error occurred" }, 500);
-  }
-});
-
-app.get("/api/store", async (c) => {
-  try {
-    const apiUrl = `https://api.mozambiquehe.re/store?auth=${c.env.APEX_LEGENDS_API_KEY}`;
-    const response = await fetch(apiUrl);
-
-    if (!response.ok) {
-      console.error("Apex Legends API Error:", await response.text());
-      return c.json(
-        { error: "Failed to fetch store rotation." },
-        response.status as any
-      );
-    }
-
-    const data: any = await response.json();
-    return c.json(data);
-  } catch (error) {
-    console.error("Error in /api/store:", error);
-    return c.json({ error: "An internal error occurred" }, 500);
-  }
-});
-
-app.get("/api/crafting", async (c) => {
-  try {
-    const apiUrl = `https://api.mozambiquehe.re/crafting?auth=${c.env.APEX_LEGENDS_API_KEY}`;
-    const response = await fetch(apiUrl);
-
-    if (!response.ok) {
-      console.error("Apex Legends API Error:", await response.text());
-      return c.json(
-        { error: "Failed to fetch crafting rotation." },
-        response.status as any
-      );
-    }
-
-    const text = await response.text();
-    if (!text) {
-      return c.json([]);
-    }
-
-    try {
-      const data = JSON.parse(text);
-      return c.json(data);
-    } catch (parseError) {
-      console.error("Error parsing crafting data as JSON:", parseError);
-
-      return c.json([]);
-    }
-  } catch (error) {
-    console.error("Error in /api/crafting:", error);
-    return c.json({ error: "An internal error occurred" }, 500);
-  }
-});
-
-app.get("/api/news", async (c) => {
-  try {
-    const apiUrl = `https://api.mozambiquehe.re/news?auth=${c.env.APEX_LEGENDS_API_KEY}`;
-    const response = await fetch(apiUrl);
-
-    if (!response.ok) {
-      console.error("Apex Legends API Error:", await response.text());
-      return c.json(
-        { error: "Failed to fetch game news." },
-        response.status as any
-      );
-    }
-
-    const data: any = await response.json();
-    return c.json(data);
-  } catch (error) {
-    console.error("Error in /api/news:", error);
-    return c.json({ error: "An internal error occurred" }, 500);
-  }
-});
-
-app.get("/api/server-status", async (c) => {
-  try {
-    const apiUrl = `https://api.mozambiquehe.re/serverstatus?auth=${c.env.APEX_LEGENDS_API_KEY}`;
-    const response = await fetch(apiUrl);
-
-    if (!response.ok) {
-      console.error("Apex Legends API Error:", await response.text());
-      return c.json(
-        { error: "Failed to fetch server status." },
-        response.status as any
-      );
-    }
-
-    const data: any = await response.json();
-    return c.json(data);
-  } catch (error) {
-    console.error("Error in /api/server-status:", error);
-    return c.json({ error: "An internal error occurred" }, 500);
-  }
-});
-
-app.get("/api/health", (c) => {
+// Health check endpoint
+app.get("/health", (c) => {
   return c.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+// Mount the API routes under the /api path
+app.route('/api', api);
 
 export default app;
