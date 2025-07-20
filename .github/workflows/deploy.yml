@@ -31,6 +31,6 @@ jobs:
           # This must match the 'name' in your wrangler.toml file
           projectName: "riot-drill"
           # This is the directory that Vite builds your frontend to
-          directory: "./dist"
+          directory: "./dist/client"
           # This tells the action to use the project's version of wrangler
           wranglerVersion: '3'
