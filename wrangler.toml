@@ -1,6 +1,6 @@
 # This configuration is optimized for a Cloudflare Pages deployment.
 
-name = "Riot-Drill"
+name = "riot-drill"
 main = "worker/index.ts" # Path to our Hono backend function
 compatibility_date = "2024-07-15"
 
