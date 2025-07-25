@@ -1,7 +1,5 @@
 import { Hono } from "hono";
-
-// Note: The serveStatic import is no longer needed for Cloudflare Workers in this scenario.
-// Static assets are handled by the Cloudflare platform based on your wrangler.toml configuration.
+import { GoogleGenAI } from "@google/genai";
 
 type Bindings = {
   GEMINI_API_KEY: string;
@@ -10,20 +8,9 @@ type Bindings = {
   APEX_LEGENDS_API_KEY: string;
 };
 
-type GeminiChatResponse = {
-  candidates: Array<{
-    content: {
-      parts: Array<{
-        text: string;
-      }>;
-    };
-  }>;
-};
-
-type GeminiEmbeddingResponse = {
-  embedding: {
-    values: number[];
-  };
+type ChatHistoryItem = {
+  role: "user" | "model";
+  parts: Array<{ text: string }>;
 };
 
 type PineconeQueryResponse = {
@@ -32,43 +19,43 @@ type PineconeQueryResponse = {
     score: number;
     metadata?: {
       text?: string;
+      pageTitle?: string;
+      sectionTitle?: string;
+      source?: string;
     };
   }>;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-async function createEmbedding(text: string, c: any): Promise<number[]> {
-  const embeddingUrl = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${c.env.GEMINI_API_KEY}`;
+async function createEmbedding(
+  text: string,
+  apiKey: string
+): Promise<number[]> {
+  const ai = new GoogleGenAI({ apiKey });
+  const result = await ai.models.embedContent({
+    model: "text-embedding-004",
+    contents: text,
+  });
 
-  try {
-    const response = await fetch(embeddingUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "models/text-embedding-004",
-        content: { parts: [{ text }] },
-      }),
-    });
+  const embedding = result.embeddings?.[0]?.values;
 
-    if (!response.ok) {
-      throw new Error(`Failed to create embedding. Status: ${response.status}`);
-    }
-    const data = await response.json<GeminiEmbeddingResponse>();
-    return data.embedding.values;
-  } catch (error) {
-    console.error("Error creating embedding:", error);
-    throw error;
+  if (!embedding) {
+    console.error("Embedding creation failed. API response:", result);
+    throw new Error("Failed to create embedding for the provided text.");
   }
+
+  return embedding;
 }
 
-// --- API Routes ---
-// It's a good practice to group all API-related routes in a separate Hono instance.
 const api = new Hono<{ Bindings: Bindings }>();
 
 api.post("/chat", async (c) => {
   try {
-    const { message } = await c.req.json<{ message: string }>();
+    const { message, history = [] } = await c.req.json<{
+      message: string;
+      history?: ChatHistoryItem[];
+    }>();
     if (!message) {
       return c.json({ error: "Message is required" }, 400);
     }
@@ -80,8 +67,8 @@ api.post("/chat", async (c) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        vector: await createEmbedding(message, c),
-        topK: 5,
+        vector: await createEmbedding(message, c.env.GEMINI_API_KEY),
+        topK: 7,
         includeMetadata: true,
       }),
     });
@@ -92,39 +79,81 @@ api.post("/chat", async (c) => {
     }
 
     const queryData = await queryResponse.json<PineconeQueryResponse>();
-    const context = queryData.matches
-      .map((match) => match.metadata?.text ?? "")
+
+    const contextDocuments = queryData.matches.map((match) => ({
+      text: match.metadata?.text ?? "",
+      source: match.metadata?.pageTitle ?? "Unknown Source",
+    }));
+
+    const context = contextDocuments
+      .map((doc) => `Source: ${doc.source}\nContent: ${doc.text}`)
       .join("\n\n---\n\n");
 
-    const augmentedPrompt = `
-      Context information is provided below.
-      ---------------------
-      ${context}
-      ---------------------
-      Given the context information and no prior knowledge, answer the query.
-      Query: ${message}
-    `;
+    const formattedHistory = history
+      .map(
+        (msg) => `${msg.role === "user" ? "User" : "AI"}: ${msg.parts[0].text}`
+      )
+      .join("\n");
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${c.env.GEMINI_API_KEY}`;
-    const llmResponse = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: augmentedPrompt }] }],
-      }),
+    const augmentedPrompt = `You are "Apex Intel," an expert AI assistant for the game Apex Legends.
+Your task is to answer the user's query based ONLY on the provided context information. Do not use any prior knowledge.
+
+Based on the user's query and the provided context, generate a single, valid JSON object with the following structure:
+{
+  "answer": "Your detailed, helpful answer to the query goes here. Use markdown for formatting like lists or tables.",
+  "sources": ["Source Page Title 1", "Source Page Title 2"]
+}
+
+The "sources" array should contain the unique page titles of the context documents you used to formulate your answer.
+
+### CONTEXT INFORMATION ###
+${context}
+### END CONTEXT ###
+
+### CHAT HISTORY ###
+${formattedHistory}
+### END CHAT HISTORY ###
+
+### USER QUERY ###
+${message}
+### END USER QUERY ###
+
+JSON Response:`;
+
+    const ai = new GoogleGenAI({ apiKey: c.env.GEMINI_API_KEY });
+
+    const response = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: augmentedPrompt,
     });
 
-    const data = await llmResponse.json<GeminiChatResponse>();
+    const rawResponse = response.text;
 
-    if (!llmResponse.ok) {
-      console.error("Gemini API Error:", data);
-      return c.json({ error: "Failed to get response from AI" }, 500);
+    if (!rawResponse) {
+      return c.json({ error: "AI returned an empty response." }, 500);
     }
 
-    const aiResponse =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ??
-      "Sorry, I could not get a response.";
-    return c.json({ response: aiResponse });
+    try {
+      const jsonString = rawResponse.substring(
+        rawResponse.indexOf("{"),
+        rawResponse.lastIndexOf("}") + 1
+      );
+      const jsonResponse = JSON.parse(jsonString);
+      return c.json(jsonResponse);
+    } catch (e) {
+      console.error(
+        "Failed to parse JSON response from AI:",
+        e,
+        "\nRaw response was:",
+        rawResponse
+      );
+      return c.json({
+        answer:
+          "I couldn't generate a structured response, but here is the raw text: " +
+          rawResponse,
+        sources: [...new Set(contextDocuments.map((doc) => doc.source))],
+      });
+    }
   } catch (error) {
     console.error("Error in /api/chat:", error);
     return c.json({ error: "An internal error occurred" }, 500);
@@ -180,14 +209,10 @@ api.get("/player-stats/:platform/:playerName", async (c) => {
   }
 });
 
-// --- Main App Setup ---
-
-// Health check endpoint
 app.get("/health", (c) => {
   return c.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Mount the API routes under the /api path
-app.route('/api', api);
+app.route("/api", api);
 
 export default app;
