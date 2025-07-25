@@ -61,13 +61,19 @@ export const getGameNews = async () => {
   return response.json();
 };
 
-export const askAI = async (message: string) => {
+export type ChatHistoryItem = {
+  role: "user" | "model";
+  parts: Array<{ text: string }>;
+};
+
+export const askAI = async (message: string, history: ChatHistoryItem[]) => {
   const response = await fetch("/api/chat", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ message }),
+
+    body: JSON.stringify({ message, history }),
   });
 
   if (!response.ok) {
@@ -78,11 +84,11 @@ export const askAI = async (message: string) => {
 };
 
 export const getPredatorLeaderboard = async () => {
-    const response = await fetch("/api/predator");
+  const response = await fetch("/api/predator");
 
-    if (!response.ok) {
-        throw new Error("Network response was not ok");
-    }
+  if (!response.ok) {
+    throw new Error("Network response was not ok");
+  }
 
-    return response.json();
+  return response.json();
 };

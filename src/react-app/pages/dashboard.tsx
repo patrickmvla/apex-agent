@@ -1,69 +1,72 @@
 import { AIChat } from "@/features/ai-chat/components/ai-chat";
 import MapRotation from "@/features/map-rotation/map-rotation";
 import { PlayerStatsSearch } from "@/features/player-stats/components/player-stats-card";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/ui/button"; // Assuming you have a button component
+import { Gamepad2, Moon, Sun } from "lucide-react";
+
+// A dedicated, reusable Header component for the application.
+const Header = () => {
+    return (
+        <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-slate-100/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800">
+            <div className="container mx-auto flex h-full items-center justify-between px-4">
+                {/* Logo and Title */}
+                <div className="flex items-center gap-2">
+                    <Gamepad2 className="h-7 w-7 text-green-500" />
+                    <span className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                        Apex Intel Hub
+                    </span>
+                </div>
+                {/* Placeholder for theme toggle or other actions */}
+                <Button variant="ghost" size="icon">
+                    <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                    <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                    <span className="sr-only">Toggle theme</span>
+                </Button>
+            </div>
+        </header>
+    );
+};
+
 
 const Dashboard = () => {
   return (
-    <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-8">
-      {/* Header Section */}
-      <header className="text-center">
-        <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
-          Apex Legends Dashboard
-        </h1>
-        <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
-          Your central hub for live game data, player statistics, and AI-powered insights.
-        </p>
-      </header>
+    <div className="relative min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+      {/* Background decorative element */}
+      <div className="absolute top-0 left-0 -z-10 h-full w-full">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[60vw] h-[60vh] bg-green-500/10 dark:bg-green-500/20 rounded-full blur-[120px]"></div>
+      </div>
+      
+      {/* Application Header */}
+      <Header />
 
-      {/* Main content area */}
-      <div className="space-y-8">
+      {/* Main Content Area */}
+      <main className="relative z-10 container mx-auto px-4 pt-24 pb-12 md:px-6 lg:px-8 space-y-12">
+        {/* Page Title Section */}
+        {/* <section className="text-center">
+            <h1 className="text-4xl font-bold tracking-tight text-slate-800 dark:text-slate-100 sm:text-5xl">
+                Dashboard
+            </h1>
+            <p className="mt-3 max-w-2xl mx-auto text-lg text-slate-600 dark:text-slate-400">
+                Your central command for live game data, player statistics, and AI-powered insights.
+            </p>
+        </section> */}
+
         {/* Top Row: AI Chat and Player Stats */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-          
-          {/* AI Chat takes up more space on the left */}
+        <section className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
           <div className="lg:col-span-3">
-            {/* The AIChat component is already a self-contained card, so we place it directly. */}
             <AIChat />
           </div>
-
-          {/* Player Stats on the right */}
           <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Player Statistics</CardTitle>
-                <CardDescription>
-                  Search for a player to view their stats.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* The redesigned PlayerStatsSearch component fits perfectly here. */}
-                <PlayerStatsSearch />
-              </CardContent>
-            </Card>
+            <PlayerStatsSearch />
           </div>
-        </div>
+        </section>
 
         {/* Bottom Row: Map Rotation */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Live Map Rotation</CardTitle>
-            <CardDescription>
-              Check the current and upcoming map schedules for all game modes.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* The MapRotation component arranges the individual map cards. */}
-            <MapRotation />
-          </CardContent>
-        </Card>
-      </div>
+        <section>
+          <MapRotation />
+        </section>
+      </main>
     </div>
   );
 };

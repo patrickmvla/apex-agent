@@ -1,12 +1,14 @@
-// src/apex-agent/features/ai-chat/hooks/useAskAI.ts
-
 import { useMutation } from "@tanstack/react-query";
-import { askAI } from "@/api";
+import { askAI, type ChatHistoryItem } from "@/api";
+
+type AskAIVariables = {
+  message: string;
+  history: ChatHistoryItem[];
+};
 
 export const useAskAI = () => {
   return useMutation({
-   
-    mutationFn: (message: string) => askAI(message),
-  
+    mutationFn: ({ message, history }: AskAIVariables) =>
+      askAI(message, history),
   });
 };
